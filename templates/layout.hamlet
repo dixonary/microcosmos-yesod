@@ -1,0 +1,10 @@
+<!DOCTYPE html5>
+<html>
+    <head>
+        <title>#{pageTitle}
+
+        #{pageHead}
+        
+    <body>
+        <main>
+            #{pageBody}

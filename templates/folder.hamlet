@@ -1,0 +1,8 @@
+<h1> #{dirname}
+
+<a href=".">..
+
+$forall dir <- dirs
+    #{dir} 
+$forall post <- posts
+    #{post}

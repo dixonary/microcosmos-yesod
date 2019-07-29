@@ -1,0 +1,64 @@
+name:                microcosmos
+version:             0.1.0.0
+github:              "dixonary/microcosmos"
+license:             BSD3
+author:              "Alex Dixon"
+maintainer:          "alexander.dixon@warwick.ac.uk"
+copyright:           "2019 Alex Dixon"
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/dixonary/microcosmos#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- yesod
+- yesod-static
+- yesod-core
+- shakespeare
+- warp
+- containers
+- text
+- blaze-html
+- http-types
+- directory
+- filepath
+- pandoc
+- time
+- megaparsec
+
+default-extensions:
+- TemplateHaskell
+- QuasiQuotes
+- TypeFamilies
+- OverloadedStrings
+- GADTs
+- TypeSynonymInstances
+- FlexibleInstances
+- OverloadedLists
+- ViewPatterns
+- RecordWildCards
+
+
+data-files:
+- templates/*
+- posts/*
+
+library:
+  source-dirs: src
+
+executables:
+  mc:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - microcosmos
