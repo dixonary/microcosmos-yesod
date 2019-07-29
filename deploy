@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Commit any changes
+
+echo -n "Enter a Commit line: "
+read COMMITLINE
+
+git add --all . && git commit -m "$COMMITLINE" && git push
+
+ssh alex@kink.exchange "cd microcosmos && git pull && stack build && stack image container"
+
+cd caprover
+
+caprover deploy --default
+
+cd -
