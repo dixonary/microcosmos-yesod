@@ -7,7 +7,7 @@ read COMMITLINE
 
 git add --all . && git commit -m "$COMMITLINE" && git push
 
-ssh alex@kink.exchange "cd microcosmos && git pull && LC_ALL=C stack build && stack image container"
+ssh alex@kink.exchange "cd microcosmos && git pull && LC_ALL=en_US.UTF-8 stack build && stack image container"
 
 cd caprover
 
