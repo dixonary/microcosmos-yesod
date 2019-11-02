@@ -11,12 +11,14 @@ import System.Directory
 import System.Environment
 import System.FilePath
 import Data.Time.Format
+import Data.Time.Format.Human
 import Data.Time.Clock
 -- Text
 import Data.Text as Text (Text, strip, pack, unpack)
 import Data.Text.IO (readFile)
 import Data.Char (toLower)
 import Text.Hamlet
+import Text.Blaze.Html (preEscapedToHtml)
 import Text.Hamlet.Runtime
 import Text.Megaparsec hiding (many, some)
 import Text.Megaparsec.Char
@@ -30,6 +32,7 @@ import Control.Applicative
 import Control.Monad hiding (fail)
 import Control.Monad.Fail 
 import Data.Void
+import Data.Bifunctor (second)
 
 --------------------------------------------------------------------------------
 -- Types and Yesod Preliminaries
@@ -90,17 +93,20 @@ layout widget = do
 -- Given an extensionless filepath, find the post(s).
 getPost :: FilePath -> Handler (Maybe Post)
 getPost path = do
-    res <- liftIO $ doesDirectoryExist $ dropFileName $ root </> path
-    if not res then return Nothing
-    else do
-        allPaths <- liftIO $ listDirectory $ dropFileName $ root </> path
-        let paths = filter (\p -> takeFileName path == dropExtension p) allPaths
-            pathM = listToMaybe paths
+    if (null (takeBaseName path) || head (takeBaseName path) == '.')
+        then return Nothing
+        else do
+            res <- liftIO $ doesDirectoryExist $ dropFileName $ root </> path
+            if not res then return Nothing
+            else do
+                allPaths <- liftIO $ listDirectory $ dropFileName $ root </> path
+                let paths = filter (\p -> takeFileName path == dropExtension p) allPaths
+                    pathM = listToMaybe paths
 
-        case pathM of
-            Nothing -> return Nothing
-            Just p -> do
-                getPostFull $ dropFileName path </> p 
+                case pathM of
+                    Nothing -> return Nothing
+                    Just p -> do
+                        getPostFull $ dropFileName path </> p 
 
 
 -- Given a full filepath, read the post(s).
@@ -125,7 +131,7 @@ getPostFull path = do
                     parseDateM d = 
                         Prelude.foldr1 (<|>) 
                         $ (\x -> parseTimeM True defaultTimeLocale x (unpack d)) 
-                        <$> (["%D", "%F"]::[String])
+                        <$> (["%D %R", "%F %R", "%D", "%F"]::[String])
 
                     date = fromMaybe mtime $ join 
                         $ parseDateM <$> Map.lookup "date" headers
@@ -198,13 +204,13 @@ sendDir Dir{..} = do
             [shamlet|
             <a href=#{fullDir}>
                 <.dir>
-                    <p.name>#{dirTitle} |]
+                    <p.dir-name>#{dirTitle} |]
         renderedPosts = flip map posts $ \Post{..} -> let
             fullPost = "/" <> dirPath </> unpack postName
             in [shamlet|
             <a href=#{fullPost}>
                 <.post>
-                    <p.name>#{postTitle} |]
+                    <p.post-name>#{postTitle} |]
 
     html <- runtimeHamlet "templates/folder.hamlet" 
         [ "dirname" .= dirTitle
@@ -218,23 +224,70 @@ sendDir Dir{..} = do
 sendPost :: Post -> Handler Html
 sendPost Post{..} = do
     let reader :: Either String (Reader PandocIO, Extensions)
-        reader = getReader =<<
+        reader = fmap ( second (<> exts) ) $ getReader =<<
             case formatFromFilePath (unpack postName <.> unpack postExtension) of
                 Nothing -> Left "Nothing"
                 Just s  -> Right s
+
+        exts = extensionsFromList 
+            [ Ext_abbreviations
+            , Ext_auto_identifiers
+            , Ext_backtick_code_blocks
+            , Ext_citations
+            , Ext_emoji
+            , Ext_fancy_lists
+            , Ext_fenced_divs
+            , Ext_fenced_code_blocks
+            , Ext_fenced_code_attributes
+            , Ext_latex_macros
+            , Ext_raw_html
+            , Ext_gfm_auto_identifiers
+            , Ext_grid_tables
+            -- , Ext_markdown_in_html_blocks
+            , Ext_native_divs
+            , Ext_old_dashes
+            , Ext_shortcut_reference_links
+            , Ext_strikeout
+            , Ext_superscript
+            , Ext_subscript
+            , Ext_styles
+            , Ext_tex_math_dollars
+            ]
+
+        defExtsR = let 
+            k = def
+            in k{readerExtensions = readerExtensions k <> exts}
+
+        defExtsW = let 
+            k = def
+            in k{writerExtensions = writerExtensions k <> exts}
+
 
     case reader of
         Left _ -> sendResponse postContent
         Right (r,_) -> do
             case r of
                 TextReader tr -> do
-                    html <- liftIO $ runIO $ tr def postContent 
-                                             >>= writeHtml5 def
+                    html <- liftIO $ runIO $ tr defExtsR postContent 
+                                             >>= \x -> do 
+                                                liftIO $ print x
+                                                writeHtml5 defExtsW x
+
                     case html of
                         Left _ -> sendResponseStatus status500 ("Error"::Text)
-                        Right body -> defaultLayout $ do
-                            setTitle $ toHtml postTitle
-                            toWidgetBody body
+                        Right body -> do
+                            hrt <- liftIO $ humanReadableTime postDate
+                        
+                            renderedPost <- runtimeHamlet "templates/post.hamlet"
+                                [ "title" .= postTitle
+                                , "body"  .= body
+                                , "date"  .= pack hrt
+                                , "extension" .= postExtension
+                                ] 
+
+                            defaultLayout $ do
+                                setTitle $ toHtml postTitle
+                                toWidgetBody $ renderedPost
                 _ -> sendResponseStatus status500 ("Error"::Text)
 
 

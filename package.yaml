@@ -30,6 +30,7 @@ dependencies:
 - filepath
 - pandoc
 - time
+- friendly-time
 - megaparsec
 
 default-extensions:
