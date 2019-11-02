@@ -33,6 +33,7 @@ import Control.Monad hiding (fail)
 import Control.Monad.Fail 
 import Data.Void
 import Data.Bifunctor (second)
+import Data.Function ((&))
 
 --------------------------------------------------------------------------------
 -- Types and Yesod Preliminaries
@@ -100,8 +101,11 @@ getPost path = do
             if not res then return Nothing
             else do
                 allPaths <- liftIO $ listDirectory $ dropFileName $ root </> path
-                let paths = filter (\p -> takeFileName path == dropExtension p) allPaths
-                    pathM = listToMaybe paths
+                
+                paths <- liftIO $ allPaths
+                          & filter (\p -> takeFileName path == dropExtension p) 
+                          & filterM (liftM not . doesDirectoryExist . (root </>))
+                let pathM = listToMaybe paths
 
                 case pathM of
                     Nothing -> return Nothing
@@ -234,19 +238,28 @@ sendPost Post{..} = do
             , Ext_auto_identifiers
             , Ext_backtick_code_blocks
             , Ext_citations
+            , Ext_definition_lists
             , Ext_emoji
             , Ext_fancy_lists
             , Ext_fenced_divs
             , Ext_fenced_code_blocks
             , Ext_fenced_code_attributes
+            , Ext_footnotes
+            , Ext_grid_tables
+            , Ext_header_attributes
             , Ext_latex_macros
             , Ext_raw_html
             , Ext_gfm_auto_identifiers
             , Ext_grid_tables
+            , Ext_link_attributes
+            , Ext_pipe_tables
+            , Ext_markdown_attribute
             -- , Ext_markdown_in_html_blocks
             , Ext_native_divs
+            , Ext_native_spans
             , Ext_old_dashes
             , Ext_shortcut_reference_links
+            , Ext_simple_tables
             , Ext_strikeout
             , Ext_superscript
             , Ext_subscript
@@ -308,7 +321,7 @@ main = do
             (p:_) -> read p
 
     stt <- static "static"
-    app    <- toWaiApp $ MC stt
+    app <- toWaiApp $ MC stt
 
     run port app
 
