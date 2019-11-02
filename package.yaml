@@ -50,7 +50,7 @@ data-files:
 - posts/*
 
 library:
-  source-dirs: src
+  source-dirs: []
 
 executables:
   mc:
@@ -61,5 +61,11 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     - -O2
+    - -static
+    cc-options:
+    - -static
+    ld-options:
+    - -static
+    - -pthread
     dependencies:
     - microcosmos

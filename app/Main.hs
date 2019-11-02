@@ -29,7 +29,7 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Control.Applicative
 import Control.Monad hiding (fail)
-import Control.Monad.Fail 
+import Control.Monad.Fail
 import Data.Void
 import Data.Bifunctor (second)
 import Data.Function ((&))
@@ -55,7 +55,7 @@ data Dir = Dir
     , dirTitle :: Text
     }
 
-data Post = Post 
+data Post = Post
     { postName      :: Text
     , postExtension :: Text
     , postTitle     :: Text
@@ -81,8 +81,8 @@ layout :: Widget -> Handler Html
 layout widget = do
     renderer <- getUrlRenderParams
     pc       <- widgetToPageContent widget
-    html     <- runtimeHamlet 
-                "templates/layout.hamlet"  
+    html     <- runtimeHamlet
+                "templates/layout.hamlet"
                 [ "pageTitle" .= pageTitle pc
                 , "pageHead"  .= pageHead  pc renderer
                 , "pageBody"  .= pageBody  pc renderer
@@ -100,16 +100,16 @@ getPost path = do
             if not res then return Nothing
             else do
                 allPaths <- liftIO $ listDirectory $ dropFileName $ root </> path
-                
+
                 paths <- liftIO $ allPaths
-                          & filter (\p -> takeFileName path == dropExtension p) 
+                          & filter (\p -> takeFileName path == dropExtension p)
                           & filterM (liftM not . doesDirectoryExist . (root </>))
                 let pathM = listToMaybe paths
 
                 case pathM of
                     Nothing -> return Nothing
                     Just p -> do
-                        getPostFull $ dropFileName path </> p 
+                        getPostFull $ dropFileName path </> p
 
 
 -- Given a full filepath, read the post(s).
@@ -128,15 +128,15 @@ getPostFull path = do
             Nothing -> return Nothing
             Just (headers, body) -> do
                 mtime <- liftIO $ getModificationTime fullPath
-                
+
                 let
                     title = Map.findWithDefault (pack filename) "title" headers
-                    parseDateM d = 
-                        Prelude.foldr1 (<|>) 
-                        $ (\x -> parseTimeM True defaultTimeLocale x (unpack d)) 
+                    parseDateM d =
+                        Prelude.foldr1 (<|>)
+                        $ (\x -> parseTimeM True defaultTimeLocale x (unpack d))
                         <$> (["%D %R", "%F %R", "%D", "%F"]::[String])
 
-                    date = fromMaybe mtime $ join 
+                    date = fromMaybe mtime $ join
                         $ parseDateM <$> Map.lookup "date" headers
 
                 return $ Just Post
@@ -156,7 +156,7 @@ getDir path = do
         let basename    = pack $ takeBaseName path
             infoPath    = root </> path </> ".dirinfo"
         hasDirinfo <- doesFileExist infoPath
-        title      <- if hasDirinfo 
+        title      <- if hasDirinfo
                         then readFile infoPath
                         else return basename
         return $ Just $ Dir path basename title
@@ -187,7 +187,7 @@ getPostData path = do
     where
         postP    = (,) <$> headersP <*> takeRest
         fenceP   = manyTill (char '-') (eol::Parser Text)
-        headersP = Map.fromList 
+        headersP = Map.fromList
             <$> option [] (between fenceP fenceP (many headerP))
         headerP  = do
             l <- manyTill (satisfy (/= '-'))     $ char ':'
@@ -202,8 +202,8 @@ sendDir Dir{..} = do
     dirs <- liftIO $ catMaybes <$> mapM (getDir . (dirPath </>)) filenames
     posts <- catMaybes <$> mapM (getPost . (dirPath </>) . dropExtension) filenames
 
-    let renderedDirs = flip map dirs $ const $ let 
-            fullDir = "/" <> dirPath </> unpack dirName in 
+    let renderedDirs = flip map dirs $ const $ let
+            fullDir = "/" <> dirPath </> unpack dirName in
             [shamlet|
             <a href=#{fullDir}>
                 <.dir>
@@ -215,7 +215,7 @@ sendDir Dir{..} = do
                 <.post>
                     <p.post-name>#{postTitle} |]
 
-    html <- runtimeHamlet "templates/folder.hamlet" 
+    html <- runtimeHamlet "templates/folder.hamlet"
         [ "dirname" .= dirTitle
         , "dirs"    .= toHamletData <$> renderedDirs
         , "posts"   .= toHamletData <$> renderedPosts
@@ -232,7 +232,7 @@ sendPost Post{..} = do
                 Nothing -> Left "Nothing"
                 Just s  -> Right s
 
-        exts = extensionsFromList 
+        exts = extensionsFromList
             [ Ext_abbreviations
             , Ext_auto_identifiers
             , Ext_backtick_code_blocks
@@ -266,11 +266,11 @@ sendPost Post{..} = do
             , Ext_tex_math_dollars
             ]
 
-        defExtsR = let 
+        defExtsR = let
             k = def
             in k{readerExtensions = readerExtensions k <> exts}
 
-        defExtsW = let 
+        defExtsW = let
             k = def
             in k{writerExtensions = writerExtensions k <> exts}
 
@@ -280,20 +280,20 @@ sendPost Post{..} = do
         Right (r,_) -> do
             case r of
                 TextReader tr -> do
-                    html <- liftIO $ runIO $ tr defExtsR postContent 
+                    html <- liftIO $ runIO $ tr defExtsR postContent
                                 >>= writeHtml5 defExtsW
 
                     case html of
                         Left _ -> sendResponseStatus status500 ("Error"::Text)
                         Right body -> do
                             hrt <- liftIO $ humanReadableTime postDate
-                        
+
                             renderedPost <- runtimeHamlet "templates/post.hamlet"
                                 [ "title" .= postTitle
                                 , "body"  .= body
                                 , "date"  .= pack hrt
                                 , "extension" .= postExtension
-                                ] 
+                                ]
 
                             defaultLayout $ do
                                 setTitle $ toHtml postTitle
@@ -314,7 +314,7 @@ main :: IO ()
 main = do
     args <- getArgs
     let port = case args of
-            []    -> 3000
+            []    -> 80
             (p:_) -> read p
 
     stt <- static "static"
