@@ -1,0 +1,9 @@
+<.preamble data-title="#{title}">
+  <h1>
+      #{title}
+
+  <aside>
+      Posted #{date}
+
+<content>
+  ^{body}
