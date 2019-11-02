@@ -3,8 +3,7 @@ module Main where
 import Prelude hiding (readFile, unlines, lines, all, fail)
 import Network.Wai.Handler.Warp (run)
 import Network.HTTP.Types.Status
-import Yesod hiding ((.=), FileInfo, fileName, getCurrentTime, Header)
-import Yesod.Default.Util ()
+import Yesod.Core hiding ((.=), FileInfo, fileName, getCurrentTime, Header)
 import Yesod.Static
 -- System
 import System.Directory
@@ -282,9 +281,7 @@ sendPost Post{..} = do
             case r of
                 TextReader tr -> do
                     html <- liftIO $ runIO $ tr defExtsR postContent 
-                                             >>= \x -> do 
-                                                liftIO $ print x
-                                                writeHtml5 defExtsW x
+                                >>= writeHtml5 defExtsW
 
                     case html of
                         Left _ -> sendResponseStatus status500 ("Error"::Text)

@@ -13,11 +13,10 @@ copyright:           "2019 Alex Dixon"
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/dixonary/microcosmos#readme>
+description: Please see the README on GitHub at <https://github.com/dixonary/microcosmos#readme>
 
 dependencies:
 - base >= 4.7 && < 5
-- yesod
 - yesod-static
 - yesod-core
 - shakespeare
@@ -62,6 +61,5 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     - -O2
-    - -dynamic
     dependencies:
     - microcosmos
